@@ -1,92 +1,84 @@
 # TANA - Travel Management System
-**Third Semester University Project**
+> Professional travel booking and itinerary management platform
 
-## Overview
-TANA is a comprehensive travel management system developed using ASP.NET Core with Clean Architecture. The system enables travel agencies to manage tours, customers, and create customized travel itineraries with PDF report generation capabilities.
+## 🎯 Overview
+TANA is a comprehensive travel management system built with ASP.NET Core 8.0 and Clean Architecture. Designed for travel agencies to manage bookings, create custom itineraries, and generate professional travel documents.
 
-## Features
-- 🏖️ **Tour Management**: Create, edit, and manage travel tours
-- 👥 **Customer Management**: Handle customer information and bookings
-- 📋 **Travel Itinerary Planning**: Combine multiple tours into custom travel plans
-- 📄 **PDF Report Generation**: Generate professional travel itinerary documents
-- 🎨 **Template System**: Customizable templates for reports
-- 🌍 **Multi-language Support**: English and Danish language support
-- 📱 **Responsive Design**: Modern web interface with Bootstrap
+## ✨ Key Features
+- **Travel Management**: Create and manage tours, customers, and bookings
+- **PDF Generation**: Professional travel itinerary documents with QuestPDF
+- **Multi-language**: English/Danish support with localization
+- **Security**: Session-based authentication and authorization
+- **Templates**: Customizable report layouts and travel plan templates
+- **Responsive UI**: Modern Blazor Server interface with Bootstrap
 
-## Technology Stack
-- **Backend**: ASP.NET Core 8.0
-- **Frontend**: Blazor Server
-- **Database**: SQL Server / LocalDB
-- **ORM**: Entity Framework Core
-- **PDF Generation**: QuestPDF
-- **Architecture**: Clean Architecture Pattern
-- **Containerization**: Docker support
+## 🛠️ Technology Stack
+- **Backend**: ASP.NET Core 8.0, Clean Architecture, CQRS Pattern
+- **Frontend**: Blazor Server, Bootstrap, JavaScript
+- **Database**: Entity Framework Core, SQL Server/LocalDB
+- **Security**: Custom authentication, session management
+- **DevOps**: Docker support, multi-environment configuration
+- **PDF**: QuestPDF for document generation
 
-## Project Structure
+## 🏗️ Architecture
 ```
 TANA/
-├── TANA.API/          # Web API controllers and services
-├── TANA.Web/          # Blazor Server web application
-├── TANA.Domain/       # Domain entities and interfaces
-├── TANA.Application/  # Business logic and DTOs
-├── TANA.Infrastructure/ # External services and implementations
-└── TANA.Persistence/  # Data access layer and repositories
+├── TANA.API/          # RESTful API with Swagger documentation
+├── TANA.Web/          # Blazor Server application
+├── TANA.Domain/       # Domain entities and business rules
+├── TANA.Application/  # CQRS commands/queries and DTOs
+├── TANA.Infrastructure/ # External services (Email, PDF)
+└── TANA.Persistence/  # EF Core repositories and data access
 ```
 
-## Getting Started
+## 📸 Screenshots
+
+### Login & Authentication
+![Login](screenshot/Login.png)
+
+### Customer Dashboard
+![Customer Dashboard](screenshot/Customer%20Dashboard.png)
+
+### Create Travel Itinerary
+![Create Itinerary](screenshot/Create%20Itinerary.png)
+
+### Template Builder
+![Create Template](screenshot/Create%20Template.png)
+
+### Standard Tours Management
+![Standard Tours](screenshot/Create%20standard%20trip.png)
+
+## 🚀 Quick Start
 
 ### Prerequisites
 - .NET 8.0 SDK
-- SQL Server or SQL Server Express LocalDB
-- Visual Studio 2022 or VS Code
+- SQL Server LocalDB
 
-### Installation
-1. Clone the repository
-2. Navigate to the project directory
-3. Restore NuGet packages:
-   ```bash
-   dotnet restore TANA.sln
-   ```
-4. Update the database:
-   ```bash
-   dotnet ef database update --project TANA.Persistence --startup-project TANA.API
-   ```
-5. Run the applications:
-   ```bash
-   # Terminal 1 - API
-   cd TANA.API && dotnet run
-   
-   # Terminal 2 - Web Application
-   cd TANA.Web && dotnet run
-   ```
+### Setup
+```bash
+# Clone repository
+git clone https://github.com/AmjadRenno/TANA-Travel-Management.git
+cd TANA-Travel-Management
 
-### Access Points
-- **Web Application**: https://localhost:62778
-- **API Documentation**: http://localhost:5228/swagger
+# Restore packages
+dotnet restore
 
-## Sample Data
-The system includes sample data with:
-- 8 predefined tours (Paris, Rome, Amsterdam, London, Spain, Swiss Alps, Norwegian Fjords, Tuscany)
-- 8 sample customers
-- Admin user account (admin@admin.dk)
+# Update database
+dotnet ef database update --project TANA.Persistence --startup-project TANA.Web
 
-## Key Functionalities
-1. **Tour Management**: Add and manage different travel packages
-2. **Customer Registration**: Handle customer information and preferences
-3. **Itinerary Creation**: Build custom travel plans from available tours
-4. **PDF Generation**: Create professional travel documents
-5. **Template Customization**: Design custom report layouts
-6. **Multi-language Interface**: Switch between English and Danish
+# Run application
+dotnet run --project TANA.Web
+```
 
-## Architecture Highlights
-- **Clean Architecture**: Separation of concerns with clear layer boundaries
-- **CQRS Pattern**: Command and Query separation for better scalability
-- **Repository Pattern**: Data access abstraction
-- **Dependency Injection**: Loose coupling and testability
-- **Entity Framework**: Code-first database approach
+**Access**: https://localhost:62778  
+**Admin Login**: admin@admin.dk
 
-## Development Team
-University project developed as part of the Third Semester curriculum.
+## 🔧 Development Features
+- **Clean Architecture**: Clear separation of concerns
+- **CQRS Pattern**: Scalable command/query separation  
+- **Repository Pattern**: Testable data access layer
+- **Dependency Injection**: Loosely coupled components
+- **Docker Ready**: Full containerization support
 
-## License
-This project is developed for educational purposes.
+## 📄 License
+Educational project - Third Semester University Assignment
