@@ -1,0 +1,162 @@
+﻿@using TANA.Application.Interface
+
+@page "/opret-rejseplan"
+@inject ITurService TurService
+@inject ITravelPlanService TravelPlanService
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Language> L
+@rendermode InteractiveServer
+
+<h3>@L["Create"] @L["Itinerary"]</h3>
+
+<label for="navn">@L["Title"]:</label>
+<input type="text" id="navn" @bind="navn" />
+
+<label for="description">@L["Description"]:</label>
+<input type="text" id="description" @bind="description" />
+
+<label for="pris">@L["Price"]:</label>
+<input type="number" id="pris" @bind="pris" />
+
+<label for="dage">@L["Days"]:</label>
+<input type="number" id="dage" @bind="dage" />
+
+<h4>@L["SelectTrips"]:</h4>
+@foreach (var tur in availableTurs)
+{
+    <div>
+        <input type="checkbox"
+               checked="@tur.IsSelected"
+               @onchange="(e => OnTourSelectionChanged(e, tur))" />
+        <span>@tur.Navn</span>
+    </div>
+}
+
+<p><strong>@L["TotalPrice"]:</strong> @pris kr.</p>
+<p><strong>@L["TotalDays"]:</strong> @dage</p>
+
+<button @onclick="CreateTravelPlan">Opret Rejseplan</button>
+
+<hr />
+
+<h3>@L["CreatedTravelPlans"]</h3>
+@if (rejsePlaner.Any())
+{
+    <ul>
+        @foreach (var plan in rejsePlaner)
+        {
+            <li>
+                @L["Name"]@plan.Navn<br />
+                @L["Description"]: @plan.Description<br />
+                @L["Price"]: @plan.Pris kr<br />
+                @L["Days"]: @plan.Dage<br />
+                @L["Trips"]: @string.Join(", ", plan.TurNavne)
+                <br />
+                <button @onclick="() => DeleteRejsePlan(plan.Id)">@L["Delete"]</button>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>@L["NoDataAvailable"].</p>
+}
+
+@code {
+    private string navn = "";
+    private string description = "";
+    private double pris;
+    private int dage;
+    private int kundeId = 2;
+
+    List<TurViewModel> availableTurs = new();
+    List<RejsePlanViewModel> rejsePlaner = new();
+
+    // Load the available tours on initialization
+    protected override async Task OnInitializedAsync()
+    {
+        var turs = await TurService.GetAllTurAsync();
+        availableTurs = turs.Select(t => new TurViewModel
+        {
+            Id = t.Id,
+            Navn = t.Navn,
+            Pris = t.Pris,
+            Dage = t.Dage,
+            IsSelected = false
+        }).ToList();
+
+        await LoadRejsePlaner();
+    }
+
+    // Update total price and days based on selected tours
+    private void UpdatePriceAndDays()
+    {
+        pris = availableTurs.Where(t => t.IsSelected).Sum(t => t.Pris);
+        dage = availableTurs.Where(t => t.IsSelected).Sum(t => t.Dage);
+    }
+
+    private void OnTourSelectionChanged(ChangeEventArgs e, TurViewModel tur)
+    {
+        tur.IsSelected = (bool)e.Value;
+        UpdatePriceAndDays();
+    }
+
+    private async Task CreateTravelPlan()
+    {
+        var selectedTurIds = availableTurs
+            .Where(t => t.IsSelected)
+            .Select(t => t.Id)
+            .ToList();
+
+        await TravelPlanService.CreateTravelPlanAsync(
+            navn,                 // string: name of the travel plan
+            selectedTurIds,       // List<int>: selected tour IDs
+            kundeId,              // int: customer ID
+            description,          // string: description of the plan
+            pris,                 // double: total price (calculated based on selected tours)
+            dage                  // int: number of days (calculated based on selected tours)
+        );
+
+        await LoadRejsePlaner();
+    }
+
+    private async Task LoadRejsePlaner()
+    {
+        var plans = await TravelPlanService.GetAllRejseplanerAsync(); // Husk: skal inkludere ture med navne
+        rejsePlaner = plans.Select(p => new RejsePlanViewModel
+            {
+                Id = p.Id,
+                Navn = p.Navn,
+                Description = p.Description,
+                Pris = p.Pris,
+                Dage = p.Dage,
+                TurNavne = p.Ture.Select(t => t.Navn).ToList()
+            }).ToList();
+    }
+
+    private async Task DeleteRejsePlan(int id)
+    {
+        await TravelPlanService.DeleteTravelPlanAsync(id);
+        await LoadRejsePlaner(); // Opdater listen
+    }
+
+    // ViewModel to represent the Tour data
+    class TurViewModel
+    {
+        public int Id { get; set; }
+        public string Navn { get; set; }
+        public double Pris { get; set; }
+        public int Dage { get; set; }
+        public bool IsSelected { get; set; }
+    }
+
+    class RejsePlanViewModel
+    {
+        public int Id { get; set; }
+        public string Navn { get; set; }
+        public string Description { get; set; }
+        public double Pris { get; set; }
+        public int Dage { get; set; }
+        public List<string> TurNavne { get; set; } = new();
+    }
+}

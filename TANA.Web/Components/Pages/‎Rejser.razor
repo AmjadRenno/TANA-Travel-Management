@@ -1,0 +1,72 @@
+﻿@page "/rejser"
+@using TANA.Application.Interface
+@using TANA.Application.Services
+@using TANA.Domain.Entities
+@inject IRejseService Service
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Language> L
+
+<h3>@L["Trips"]</h3>
+
+<button class="btn btn-primary mb-3"
+        @onclick="@(() => Nav.NavigateTo("/rejser/new"))">
+    + @L["NewTrip"]
+</button>
+
+@if (rejseList is null)
+{
+    <p><em>Loading…</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>@L["Startdate"]</th>
+                <th>@L["Enddate"]</th>
+                <th>@L["Days"]</th>
+                <th>@L["Price"]</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in rejseList)
+            {
+                <tr>
+                    <td>@r.Id</td>
+                    <td>@r.StartsDato</td>
+                    <td>@r.SlutsDato</td>
+                    <td>@r.Dage</td>
+                    <td>@r.Pris.ToString("N0")</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary me-1"
+                                @onclick="@(() => Nav.NavigateTo($"/rejser/edit/{r.Id}"))">
+                            @L["Edit"]
+                        </button>
+
+                        <button class="btn btn-sm btn-danger"
+                                @onclick="@(() => Delete(r.Id))">
+                            @L["Delete"]
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IEnumerable<Rejse>? rejseList;
+
+    protected override async Task OnInitializedAsync() =>
+        rejseList = await Service.GetAllAsync();
+
+    private async Task Delete(int id)
+    {
+        await Service.DeleteAsync(id);
+        rejseList = await Service.GetAllAsync();
+    }
+}

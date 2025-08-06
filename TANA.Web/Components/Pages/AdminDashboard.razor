@@ -1,0 +1,191 @@
+﻿@page "/admin-dashboard"
+@using Microsoft.Extensions.Localization
+@using TANA.Domain.Entities
+@using TANA.Application.Interface
+@using TANA.Application.Services
+
+@inject IStringLocalizer<Language> L
+@inject IBrugerService BrugerService
+@rendermode InteractiveServer
+
+<h3>Admin Dashboard</h3>
+
+<!-- Create Button -->
+<div class="mb-4 flex justify-start">
+    <button class="btn btn-success" @onclick="ShowCreateModal">@L["New"] @L["TravelAgent"]</button>
+</div>
+
+@if (!brugerList.Any())
+{
+    <p>@L["Loading..."]</p>
+}
+else
+{
+    <table class="table table-striped text-center">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>@L["Name"]</th>
+                <th>@L["Email"]</th>
+                <th>@L["Role"]</th>
+                <th>@L["Actions"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var bruger in brugerList)
+            {
+                <tr>
+                    <td>@bruger.Id</td>
+                    <td>@bruger.Navn</td>
+                    <td>@bruger.Email</td>
+                    <td>@bruger.Rolle</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm mr-2" @onclick="() => ShowEditModal(bruger)">@L["Edit"]</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => ShowDeleteModal(bruger)">@L["Delete"]</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Add/Edit Modal -->
+@if (showEditModal)
+{
+    <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:5000;display:flex;align-items:center;justify-content:center;">
+        <div style="background:white;padding:2rem;min-width:320px;box-shadow:0 2px 18px #2228;border-radius:12px;">
+            <h4>@(isEditMode ? @L["Edit"] +@L["User"] : @L["Create"] +@L["User"])</h4>
+            <EditForm Model="modalBruger" OnValidSubmit="SaveBruger">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <div class="mb-2">
+                    <label>@L["Name"]:</label>
+                    <InputText @bind-Value="modalBruger.Navn" class="form-control" />
+                </div>
+                @if (!isEditMode)
+                {
+                    <div class="mb-2">
+                        <label>@L["Password"]:</label>
+                        <InputText @bind-Value="modalBrugerPassword" class="form-control" type="password" />
+                    </div>
+                }
+                <div class="mb-2">
+                    <label>@L["Email"]:</label>
+                    <InputText @bind-Value="modalBruger.Email" class="form-control" />
+                </div>
+                <div class="mb-2">
+                    <label>@L["Role"]:</label>
+                    <InputText @bind-Value="modalBruger.Rolle" class="form-control" />
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button type="submit" class="btn btn-success">@((isEditMode ? @L["Save"] : @L["Create"]))</button>
+                    <button type="button" class="btn btn-secondary" @onclick="CloseEditModal">@L["Cancel"]</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<!-- Delete Modal -->
+@if (showDeleteModal)
+{
+    <div style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:5000;display:flex;align-items:center;justify-content:center;">
+        <div style="background:white;padding:2rem;min-width:320px;box-shadow:0 2px 18px #2228;border-radius:12px;">
+            <h4>@L["Delete"] @L["User"]: <b>@deleteBruger?.Navn</b></h4>
+            <div>@L["AreYouSure"]?</div>
+            <div class="mt-4 flex gap-2">
+                <button class="btn btn-danger" @onclick="ConfirmDelete">@L["Delete"]</button>
+                <button class="btn btn-secondary" @onclick="CloseDeleteModal">@L["Cancel"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Bruger> brugerList = new();
+    private Bruger modalBruger = new();
+    private Bruger? deleteBruger = null;
+    private string modalBrugerPassword = string.Empty;
+
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+    private bool isEditMode = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadBrugere();
+    }
+
+    private async Task ReloadBrugere()
+    {
+        brugerList = (await BrugerService.GetAllAsync()).ToList();
+        StateHasChanged();
+    }
+
+    private void ShowCreateModal()
+    {
+        modalBruger = new Bruger();
+        isEditMode = false;
+        showEditModal = true;
+    }
+
+    private void ShowEditModal(Bruger bruger)
+    {
+        // Always use a NEW instance (never a reference!)
+        modalBruger = new Bruger
+        {
+            Id = bruger.Id,
+            Navn = bruger.Navn,
+            Email = bruger.Email,
+            Rolle = bruger.Rolle,
+            PasswordHash = bruger.PasswordHash
+        };
+        isEditMode = true;
+        showEditModal = true;
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        modalBruger = new Bruger();
+        isEditMode = false;
+    }
+
+    private async Task SaveBruger()
+    {
+        if (isEditMode)
+            await BrugerService.UpdateAsync(modalBruger);
+        else
+            await BrugerService.AddAsync(modalBruger, modalBrugerPassword);
+
+        // Clear the password after use!
+        modalBrugerPassword = string.Empty;
+
+        showEditModal = false;
+        await ReloadBrugere();
+    }
+
+
+    private void ShowDeleteModal(Bruger bruger)
+    {
+        deleteBruger = bruger;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deleteBruger = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (deleteBruger != null)
+        {
+            await BrugerService.DeleteAsync(deleteBruger.Id);
+        }
+        showDeleteModal = false;
+        deleteBruger = null;
+        await ReloadBrugere();
+    }
+}

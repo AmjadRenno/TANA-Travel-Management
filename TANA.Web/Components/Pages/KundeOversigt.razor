@@ -1,0 +1,226 @@
+﻿@page "/kundeoversigt"
+﻿@using Microsoft.Extensions.Localization
+@using TANA.Application.Interface
+@using TANA.Application.Services
+@using TANA.Domain.Entities
+@inject IStringLocalizer<Language> L
+@inject IKundeService KundeService
+@inject IRejseService RejseService
+
+@rendermode InteractiveServer
+
+<h3>@L["CustomerDash"]</h3>
+
+<div style="display: flex; align-items: center; width: 100%; padding: 1rem; border-radius: 8px;">
+    <button class="btn btn-success text-x1" @onclick="OpenCreateKundeModal">@L["NewCustomer"]</button>
+    <span style="flex: 1 1 auto;"></span>
+    <input type="text" class="border-4 w-40 rounded p-1 h-8 border-blue-300 text-base" @bind="SøgText" />
+    <button class="btn btn-primary text-x1" @onclick="Søg" style="margin-left: 0.5rem;">@L["Search"]</button>
+</div>
+
+
+
+
+
+@if (!kundeList.Any())
+{
+    <p>Indlæser kunder...</p>
+}
+else
+{
+    <table class="table table-striped text-center">
+        <thead>
+            <tr>
+                <th>@L["Name"] </th>
+                <th>@L["Email"] </th>
+                <th>@L["PhoneNumber"] </th>
+                <th>@L["Address"] </th>
+                <th>@L["Status"] </th>
+                <th>@L["Actions"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var kunde in filteredKunder)
+            {
+                <tr>
+                    <td>@kunde.Navn </td>
+                    <td>@kunde.Email </td>
+                    <td>@kunde.TelefonNr </td>
+                    <td>@kunde.Adresse </td>
+                    <td>@kunde.Status </td>
+                    <td>
+                        <input type="button" value="@L["History"]" @onclick="() => SeHistorik(kunde.Id)" class="btn btn-info btn-sm mr-2" />
+                        <button class="btn btn-warning btn-sm mr-2" @onclick="() => OpenEditKundeModal(kunde)">@L["Edit"]</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteKunde(kunde.Id)">@L["Delete"]</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (visPopup)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Kunde historik</h5>
+                    <button type="button" class="btn-close"
+                            @onclick="LukPopup"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!filteredRejseList.Any())
+                    {
+                        <h3>Ingen historik endnu! </h3>
+                    }
+                    <ul>
+                        @foreach (var rejse in filteredRejseList)
+                        {
+                            <tr>
+                                <td>@rejse.StartsDato </td>
+                                <td>@rejse.SlutsDato </td>
+                                <td>@rejse.Dage </td>
+                                <td>@rejse.Pris </td>
+                            </tr>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (visKundeModal)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editMode ? @L["Edit"] : @L["Create"])</h5>
+                    <button type="button" class="btn-close" @onclick="LukKundeModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="kundeModalModel" OnValidSubmit="GemKunde">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="mb-2">
+                            <label>@L["Name"]:</label>
+                            <InputText @bind-Value="kundeModalModel.Navn" class="form-control" />
+                        </div>
+                        <div class="mb-2">
+                            <label>@L["Email"]:</label>
+                            <InputText @bind-Value="kundeModalModel.Email" class="form-control" />
+                        </div>
+                        <div class="mb-2">
+                            <label>@L["PhoneNumber"]:</label>
+                            <InputNumber @bind-Value="kundeModalModel.TelefonNr" class="form-control" />
+                        </div>
+                        <div class="mb-2">
+                            <label>@L["Address"]:</label>
+                            <InputText @bind-Value="kundeModalModel.Adresse" class="form-control" />
+                        </div>
+                        <div class="mb-2">
+                            <label>@L["Status"]:</label>
+                            <InputText @bind-Value="kundeModalModel.Status" class="form-control" />
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">@L["Save"]</button>
+                            <button type="button" class="btn btn-secondary" @onclick="LukKundeModal">@L["Cancel"]</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@code {
+    private List<Kunde> kundeList = new List<Kunde>();
+    private List<Kunde> filteredKunder = new List<Kunde>();
+
+    private List<Rejse> rejseList = new List<Rejse>();
+    private List<Rejse> filteredRejseList = new List<Rejse>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        kundeList = (await KundeService.GetAllAsync()).ToList();
+        filteredKunder = kundeList;
+        rejseList = (await RejseService.GetAllAsync()).ToList();
+    }
+
+    public string SøgText = "";
+
+    public void Søg()
+    {
+        filteredKunder = kundeList.Where(k => k.Navn.Contains(SøgText)).ToList();
+    }
+
+    private bool visPopup;
+
+    public void SeHistorik(int kundeId)
+    {
+        filteredRejseList = rejseList.Where(r => r.Kunde.Id == kundeId).ToList();
+        visPopup = true;
+    }
+
+    public void LukPopup()
+    {
+        visPopup = false;
+    }
+
+    private bool visKundeModal = false;
+    private bool editMode = false;
+    private Kunde kundeModalModel = new Kunde();
+
+    public void OpenCreateKundeModal()
+    {
+        editMode = false;
+        kundeModalModel = new Kunde();
+        visKundeModal = true;
+    }
+
+    public void OpenEditKundeModal(Kunde kunde)
+    {
+        editMode = true;
+        // Copy all fields, avoid editing directly in the list
+        kundeModalModel = kunde;
+        visKundeModal = true;
+    }
+
+    public async void LukKundeModal()
+    {
+        visKundeModal = false;
+        if (editMode)
+        {
+            kundeList = (await KundeService.GetAllAsync()).ToList();
+            filteredKunder = kundeList;
+            StateHasChanged();
+        }
+    }
+
+    public async Task GemKunde()
+    {
+        if (editMode)
+        {
+            await KundeService.UpdateAsync(kundeModalModel);
+        }
+        else
+        {
+            await KundeService.AddAsync(kundeModalModel);
+        }
+        kundeList = (await KundeService.GetAllAsync()).ToList();
+        filteredKunder = kundeList;
+        visKundeModal = false;
+        StateHasChanged();
+    }
+
+    public async Task DeleteKunde(int id)
+    {
+        await KundeService.DeleteAsync(id);
+        kundeList = (await KundeService.GetAllAsync()).ToList();
+        filteredKunder = kundeList;
+        StateHasChanged();
+    }
+}
+}

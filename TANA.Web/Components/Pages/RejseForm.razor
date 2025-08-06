@@ -1,0 +1,146 @@
+﻿@page "/rejser/{Mode}/{Id:int?}"
+@using TANA.Application.Services
+@using TANA.Application.Interface
+@using TANA.Domain.Entities
+@inject IRejseService RejseService
+@inject IKundeService KundeService
+@inject NavigationManager Nav
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Language> L
+@rendermode InteractiveServer
+
+@code {
+    [Parameter] public string Mode { get; set; } = "new";
+    [Parameter] public int? Id { get; set; }
+
+    private Rejse model = new();
+    private IEnumerable<Kunde>? kunder;
+
+    // YYYY-MM-DD <input type="date">
+    private readonly string today = DateOnly
+        .FromDateTime(DateTime.Today)
+        .ToString("yyyy-MM-dd");
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Mode == "edit" && Id is not null)
+        {
+            var existing = await RejseService.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/rejser");
+                return;
+            }
+            model = existing;
+        }
+
+        kunder = await KundeService.GetAllAsync();
+    }
+
+    private void RecalculateDays()
+    {
+        if (model.StartsDato is not null && model.SlutsDato is not null)
+        {
+            model.Dage =
+                (model.SlutsDato.Value.ToDateTime(TimeOnly.MinValue) -
+                 model.StartsDato.Value.ToDateTime(TimeOnly.MinValue)).Days;
+        }
+        else
+        {
+            model.Dage = 0;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        RecalculateDays();  
+
+        if (Mode == "new")
+            await RejseService.AddAsync(model);
+        else
+            await RejseService.UpdateAsync(model);
+
+        Nav.NavigateTo("/rejser");
+    }
+}
+
+<h3>@(Mode == "new" ? @L["NewTrip"] : string.Format(@L["EditTripId"], Id))</h3>
+
+<EditForm Model="model" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    
+    <!-- Navn -->
+    <div class="mb-3">
+        <label class="form-label">@L["Name"]</label>
+        <InputText @bind-Value="model.Navn" class="form-control" />
+        <ValidationMessage For="@(() => model.Navn)" />
+    </div>
+
+    <!-- Startdato -->
+    <div class="mb-3">
+        <label class="form-label">@L["Startdate"]</label>
+        <InputDate @bind-Value="model.StartsDato"
+                   class="form-control"
+                   min="@today"
+                   @onchange="RecalculateDays" />
+        <ValidationMessage For="@(() => model.StartsDato)" />
+    </div>
+
+    <!-- Slutdato -->
+    <div class="mb-3">
+        <label class="form-label">@L["Enddate"]</label>
+        <InputDate @bind-Value="model.SlutsDato"
+                   class="form-control"
+                   min="@today"
+                   @onchange="RecalculateDays" />
+        <ValidationMessage For="@(() => model.SlutsDato)" />
+    </div>
+
+    <!-- Dage  -->
+    <div class="mb-3">
+        <label class="form-label">@L["Days"]</label>
+        <InputNumber @bind-Value="model.Dage"
+                     class="form-control"
+                     readonly />
+    </div>
+
+    <!-- Pris -->
+    <div class="mb-3">
+        <label class="form-label">@L["Price"]</label>
+        <InputNumber @bind-Value="model.Pris" class="form-control" />
+        <ValidationMessage For="@(() => model.Pris)" />
+    </div>
+
+    <!-- Kommentar -->
+    <div class="mb-3">
+        <label class="form-label">@L["Note"]</label>
+        <InputTextArea @bind-Value="model.Kommentar" class="form-control" />
+    </div>
+
+    <!-- Kunde -->
+    <div class="mb-3">
+        <label class="form-label">@L["Customer"]</label>
+        <InputSelect @bind-Value="model.KundeId" class="form-select">
+            <option value="">-- @L["SelectCustomer"] --</option>
+            @if (kunder is not null)
+            {
+                @foreach (var k in kunder)
+                {
+                    <option value="@k.Id">@k.Navn</option>
+                }
+            }
+        </InputSelect>
+        <ValidationMessage For="@(() => model.KundeId)" />
+    </div>
+
+    <!-- button -->
+    <button class="btn btn-success">
+        @(Mode == "new" ? @L["Create"] : @L["Save"])
+    </button>
+
+    <button type="button" class="btn btn-outline-secondary ms-2"
+            @onclick="@(() => Nav.NavigateTo("/rejser"))">
+        @L["Cancel"]
+    </button>
+</EditForm>
